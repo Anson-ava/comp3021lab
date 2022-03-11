@@ -2,7 +2,7 @@ package base;
 
 import java.util.Date;
 
-public class Note {
+public class Note implements Comparable<Note> {
 	/*@Override
 	public int hashCode() {
 		return Objects.hash(title);
@@ -19,6 +19,17 @@ public class Note {
 		Note other = (Note) obj; 
 		return other.getTitle().equals(this.title);
 	}
+	
+	@Override
+	public int compareTo(Note o) {
+		if(this.date.compareTo(o.date) < 0) {
+			return 1;
+		}
+		if(this.date.compareTo(o.date) > 0) {
+			return -1; 
+		}
+		else return 0; 	
+	}
 
 	private Date date;
 	private String title;
@@ -30,5 +41,9 @@ public class Note {
 	
 	public String getTitle() {
 		return title;
+	}
+	
+	public String toString() {
+		return date.toString() + "\t" + title;
 	}
 }
