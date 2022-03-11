@@ -71,7 +71,7 @@ public class Folder implements Comparable<Folder> {
 		Collections.sort(notes);
 	}
 	
-/*	public boolean checkKeywords(String keywords, String content) {
+public boolean checkKeywords(String keywords, String content) {
         String[] keywordsList = keywords.toLowerCase().split(" ");
         String lowerCaseContent = content.toLowerCase();
         boolean temp = true;
@@ -91,50 +91,9 @@ public class Folder implements Comparable<Folder> {
 		
 		for(Note note: this.notes) {
 			if (note instanceof TextNote) {
-				if (this.checkKeywords(lowerCaseKeywords, content) || this.checkKeywords(lowerCaseKeywords, title)) {
+				//if (this.checkKeywords(lowerCaseKeywords, content) || this.checkKeywords(lowerCaseKeywords, title)) {
 					
 				}
 			}
 		}
-	}*/
-	
-	public List<Note> searchNotes(String keywords) {
-		keywords = keywords.toLowerCase();
-		String[] StrArr = keywords.split(" ");
-		List<Note> ListNote = new ArrayList<Note>();
-		
-		for(Note note: this.notes) {
-			boolean search = true;
-			int y = 0;
-			if((y < StrArr.length) && (search == true)) {
-				search = false;
-				if (note instanceof TextNote) {
-					
-					do{
-						if(StrArr[y].equals("or"))
-						y++;
-							//considering the title and content
-							if ((note.getTitle().indexOf(StrArr[y])>=0)||(((TextNote) note).content.indexOf(StrArr[y])>=0))
-								search = true;
-								y++;
-			} while ((y < StrArr.length) && (StrArr[y].equals("or")));
-				}
-					else {
-						do {
-							if(StrArr[y].equals("or")) {
-								y++;
-							}
-							//Only considering the title
-								if((note.getTitle().indexOf(StrArr[y])>=0))
-									search = true;
-									y++;
-						}  while ((y < StrArr.length) && (StrArr[y].equals("or")));
-				}
-			}
-			if (search)
-				ListNote.add(note);
-		}
-		return ListNote;
 	}
-
-}
