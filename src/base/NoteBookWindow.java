@@ -2,6 +2,7 @@ package base;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import base.Folder;
 import base.Note;
@@ -16,19 +17,26 @@ import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
+import javafx.scene.control.TextInputDialog;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.stage.Stage;
-
+import javafx.stage.FileChooser;
+import java.io.File;
 /**
  * 
  * NoteBook GUI with JAVAFX
@@ -68,7 +76,11 @@ public class NoteBookWindow extends Application {
 	 */
 	String currentSearch = "";
 	
+	String currentNote = "";
+	
 	Folder Folder = new Folder("");
+	
+	Stage stage;
 
 	public static void main(String[] args) {
 		launch(NoteBookWindow.class, args);
@@ -77,6 +89,7 @@ public class NoteBookWindow extends Application {
 	@Override
 	public void start(Stage stage) {
 		loadNoteBook();
+		this.stage = stage;
 		// Use a border pane as the root for scene
 		BorderPane border = new BorderPane();
 		// add top, left and center
@@ -89,6 +102,17 @@ public class NoteBookWindow extends Application {
 		stage.setTitle("NoteBook COMP 3021");
 		stage.show();
 	}
+	
+    private void loadNoteBook(File file) {
+    	NoteBook nb = new NoteBook(file.getAbsolutePath());
+    	noteBook = nb;
+
+		foldersComboBox.getItems().clear();
+		ArrayList<Folder> tempf = noteBook.getFolders();
+			for (Folder f : tempf){
+				foldersComboBox.getItems().add(f.getName());
+		}
+    }
 
 	/**
 	 * This create the top section
@@ -101,22 +125,73 @@ public class NoteBookWindow extends Application {
 		hbox.setPadding(new Insets(15, 12, 15, 12));
 		hbox.setSpacing(10); // Gap between nodes
 
-		Button buttonLoad = new Button("Load");
+		Button buttonLoad = new Button("Load from File");
 		buttonLoad.setPrefSize(100, 20);
-		buttonLoad.setDisable(true);
-		Button buttonSave = new Button("Save");
+		//buttonLoad.setDisable(true);
+		buttonLoad.setOnAction(new EventHandler<ActionEvent>() {
+			
+			@Override
+			public void handle (ActionEvent event) {
+				FileChooser fileChooser = new FileChooser();
+				fileChooser.setTitle("Please Choose a File Which Contains a NoteBook Object!");
+				
+				FileChooser.ExtensionFilter extFilter = new FileChooser.ExtensionFilter("Seialized Objectr File (*.ser)", "*.ser");
+				fileChooser.getExtensionFilters().add(extFilter);
+				
+				File file = fileChooser.showOpenDialog(stage);
+				
+                if(file != null) {
+					noteBook = new NoteBook(file.getAbsolutePath());
+					
+					foldersComboBox.getItems().clear();
+					for(Folder f: noteBook.getFolders()){
+						foldersComboBox.getItems().add(f.getName());
+					}
+                }
+			}
+		});
+		
+		Button buttonSave = new Button("Save to File");
 		buttonSave.setPrefSize(100, 20);
-		buttonSave.setDisable(true);
+		//buttonSave.setDisable(true);
+		
+		buttonSave.setOnAction(new EventHandler<ActionEvent>() {
+			
+			@Override
+			public void handle (ActionEvent event) {
+				FileChooser fileChooser = new FileChooser();
+				fileChooser.setTitle("Please Choose a File to Save");
+				
+				FileChooser.ExtensionFilter extFilter = new FileChooser.ExtensionFilter("Seialized Objectr File (*.ser)", "*.ser");
+				fileChooser.getExtensionFilters().add(extFilter);
+				
+				File file = fileChooser.showOpenDialog(stage);
+				
+				if(file != null) {
+					if(noteBook.save(file.getAbsolutePath())){
+						Alert alert = new Alert(AlertType.INFORMATION);
+						alert.setTitle("Successfully saved"); 
+						alert.setContentText("You file has been saved to file " + file.getName());
+						alert.showAndWait().ifPresent(rs -> {
+							if (rs == ButtonType.OK) {
+								System.out.println("Pressed OK.");
+							}
+						});
+						
+					};
+				}
+			}
+		});
 		
 		Label searchLabel = new Label("Search: ");
 		TextField textSearch = new TextField();
 		textSearch.setPrefSize(200, 20);
 		Button buttonSearch = new Button("Search");
-		buttonLoad.setPrefSize(100, 20);
-		buttonLoad.setDisable(true);
+		buttonSearch.setPrefSize(100, 20);
+		//buttonSearch.setDisable(true);
 		Button buttonClearSearch = new Button("Clear Search");
-		buttonLoad.setPrefSize(100, 20);
-		buttonLoad.setDisable(true);
+		buttonClearSearch.setPrefSize(100, 20);
+		//buttonClearSearch.setDisable(true);
 		
 		buttonSearch.setOnAction(new EventHandler<ActionEvent>() {
 			@Override
@@ -162,6 +237,11 @@ public class NoteBookWindow extends Application {
 	 * 
 	 * @return
 	 */
+    public void addFolder(String fodlerName) {
+        ArrayList<Folder> folders = this.noteBook.getFolders();
+        folders.add(new Folder(fodlerName));
+    }
+	
 	private VBox addVBox() {
 
 		VBox vbox = new VBox();
@@ -199,6 +279,7 @@ public class NoteBookWindow extends Application {
 				if (t1 == null)
 					return;
 				String title = t1.toString();
+				currentNote = t1.toString();
 
 				// This is the selected title
 				// TODO load the content of the selected note in
@@ -217,10 +298,110 @@ public class NoteBookWindow extends Application {
 				textAreaNote.setText(content);
 			}
 		});
+		
+		Button buttonAddFolder = new Button("Add a Folder");
+		buttonAddFolder.setPrefSize(100, 20);
+		
+		buttonAddFolder.setOnAction(new EventHandler<ActionEvent>() {
+			
+			@Override
+			public void handle(ActionEvent event) {
+				TextInputDialog dialog = new TextInputDialog("Add a Folder");
+			    dialog.setTitle("Input");
+			    dialog.setHeaderText("Add a new folder for your notebook:");
+			    dialog.setContentText("Please enter the name you want to create:");
+			    
+			    // Traditional way to get the response value.
+			    Optional<String> result = dialog.showAndWait();
+			    if (result.isPresent()) {
+			    	String userInput = dialog.getEditor().getText();
+			    	if(userInput.equals("")) {
+			    		Alert alert = new Alert(AlertType.WARNING);
+			    		alert.setTitle("Warning");
+						alert.setHeaderText("Warning");
+						alert.setContentText("Please input an valid folder name");
+						alert.showAndWait().ifPresent(rs->{
+							if(rs == ButtonType.OK){
+								System.out.println("Pressed OK.");
+							}
+						});
+						return;
+			    	}
+			    	for(Folder f : noteBook.getFolders()){
+						if(f.getName().equals(result.get())){
+						    Alert alert = new Alert(AlertType.WARNING);
+						    alert.setTitle("Warning");
+						    alert.setHeaderText("Warning");
+							alert.setContentText("You already have a folder named with " + userInput);
+							alert.showAndWait().ifPresent(rs->{
+								if(rs==ButtonType.OK){
+									System.out.println("Press OK.");
+								}
+							});		
+							return;
+						}
+					}
+			    	addFolder(userInput);
+			    	foldersComboBox.getItems().add(userInput);
+			    }
+			}
+		});
+		
+		Button buttonAddNote = new Button("Add a Note");
+		buttonAddNote.setPrefSize(100, 20);
+		
+		buttonAddNote.setOnAction(new EventHandler<ActionEvent>() {
+			
+			@Override
+			public void handle(ActionEvent e) {
+				
+				if(currentFolder.equals("-----") || currentFolder.equals("")){
+					Alert alert = new Alert(AlertType.WARNING);
+					alert.setTitle("Warning");
+					alert.setHeaderText("Warning");
+					alert.setContentText("Please choose a folder first!");
+					alert.showAndWait().ifPresent(rs->{
+						if(rs==ButtonType.OK){
+							System.out.println("Press OK.");
+						}
+					});	
+					
+					return;
+				}
+				
+				TextInputDialog dialog = new TextInputDialog("Add a Note");
+				dialog.setTitle("Input");
+				dialog.setHeaderText("Add a new note to current folder");
+				dialog.setContentText("Please enter the name of your note");
+				Optional<String> result = dialog.showAndWait();
+				if(result.isPresent()){
+					//TODO
+					String userInput = dialog.getEditor().getText();
+					if(noteBook.createTextNote(currentFolder, userInput)) {
+						updateListView();
+						Alert alert = new Alert(AlertType.INFORMATION);
+						alert.setTitle("Successful!");
+						alert.setHeaderText("Message");
+						alert.setContentText("Insert note " + userInput + " to folder "+currentFolder+ " successfully!");
+						alert.showAndWait().ifPresent(rs->{
+							if(rs == ButtonType.OK){
+								System.out.println("Pressed OK.");
+							}
+						});
+					}
+				}
+			}
+		});
+		
+		HBox Combo = new HBox();
+		Combo.setSpacing(15);
+		Combo.getChildren().add(foldersComboBox);
+		Combo.getChildren().add(buttonAddFolder);
 		vbox.getChildren().add(new Label("Choose folder: "));
-		vbox.getChildren().add(foldersComboBox);
+		vbox.getChildren().add(Combo);
 		vbox.getChildren().add(new Label("Choose note title"));
 		vbox.getChildren().add(titleslistView);
+		vbox.getChildren().add(buttonAddNote);
 
 		return vbox;
 	}
@@ -255,34 +436,122 @@ public class NoteBookWindow extends Application {
 		grid.setHgap(10);
 		grid.setVgap(10);
 		grid.setPadding(new Insets(10, 10, 10, 10));
-		textAreaNote.setEditable(false);
+		textAreaNote.setEditable(true);
 		textAreaNote.setMaxSize(450, 400);
 		textAreaNote.setWrapText(true);
 		textAreaNote.setPrefWidth(450);
 		textAreaNote.setPrefHeight(400);
+		
+		ImageView saveView = new ImageView(new Image(new File("E:\\git\\comp3021lab\\src\\base\\save.png").toURI().toString()));
+		saveView.setFitHeight(18);
+		saveView.setFitWidth(18);
+		saveView.setPreserveRatio(true);
+		
+		Button buttonSaveNote = new Button("Save Note");
+		buttonSaveNote.setPrefSize(100, 20);
+		
+		buttonSaveNote.setOnAction(new EventHandler<ActionEvent>() {
+			
+			@Override
+			public void handle(ActionEvent e) {
+				if(currentFolder.equals("-----") || currentNote == "") {
+					Alert alert = new Alert(AlertType.WARNING);
+					alert.setTitle("Warning");
+					alert.setHeaderText("Warning");
+					alert.setContentText("Please select a folder and a note");
+					alert.showAndWait().ifPresent(rs->{
+						if(rs == ButtonType.OK){
+							System.out.println("Pressed OK.");
+						}
+					});
+					return;
+				} else {
+					for(Folder f:noteBook.getFolders()){
+						if(f.getName().equals(currentFolder)){
+							for(Note n:f.getNotes()){
+								System.out.println(n.getTitle());
+								if (n instanceof TextNote && n.getTitle().equals(currentNote)) {
+									((TextNote) n).contentChange(textAreaNote.getText());
+								}
+							}
+						}
+					}
+				}
+			}
+		});
+		
+		ImageView deleteView = new ImageView(new Image(new File("E:\\git\\comp3021lab\\src\\base\\delete.png").toURI().toString()));
+		deleteView.setFitHeight(18);
+		deleteView.setFitWidth(18);
+		deleteView.setPreserveRatio(true);
+		
+		Button buttonDeleteNote = new Button("Delete Note");
+		buttonDeleteNote.setPrefSize(100, 20);
+		
+		buttonDeleteNote.setOnAction(new EventHandler<ActionEvent>() {
+			
+			@Override
+			public void handle(ActionEvent e) {
+				if(currentFolder.equals("-----") || currentNote == "") {
+					Alert alert = new Alert(AlertType.WARNING);
+					alert.setTitle("Warning");
+					alert.setHeaderText("Warning");
+					alert.setContentText("Please select a folder and a note");
+					alert.showAndWait().ifPresent(rs->{
+						if(rs == ButtonType.OK){
+							System.out.println("Pressed OK.");
+						}
+					});
+				} else {
+					   for(Folder f:noteBook.getFolders()){
+						   
+						   if(f.getName().equals(currentFolder)){
+							   
+				           	   f.removeNotes(currentNote);
+				           	   updateListView();
+				           	   
+				               Alert alert = new Alert(AlertType.INFORMATION);
+							   alert.setTitle("Succeed");
+							   alert.setHeaderText("Confirmation");
+							   alert.setContentText("Your note has been successfully removed");
+							   alert.showAndWait().ifPresent(rs->{
+								if(rs == ButtonType.OK){
+									System.out.println("Pressed OK.");
+								}
+							});	
+						   }
+					   }
+				}
+			}
+		});
+		
 		// 0 0 is the position in the grid
-		grid.add(textAreaNote, 0, 0);
+		HBox Combo = new HBox();
+		Combo.setSpacing(15);
+		Combo.getChildren().addAll(saveView,buttonSaveNote,deleteView,buttonDeleteNote);
+		grid.add(Combo, 0, 0);
+		grid.add(textAreaNote, 0, 1);
 
 		return grid;
 	}
 
 	private void loadNoteBook() {
 		NoteBook nb = new NoteBook();
-		nb.createTextNote("COMP3021", "COMP3021 syllabus", "Be able to implement object-oriented concepts in Java.");
-		nb.createTextNote("COMP3021", "course information",
-				"Introduction to Java Programming. Fundamentals include language syntax, object-oriented programming, inheritance, interface, polymorphism, exception handling, multithreading and lambdas.");
-		nb.createTextNote("COMP3021", "Lab requirement",
-				"Each lab has 2 credits, 1 for attendence and the other is based the completeness of your lab.");
-
-		nb.createTextNote("Books", "The Throwback Special: A Novel",
-				"Here is the absorbing story of twenty-two men who gather every fall to painstakingly reenact what ESPN called 鈥渢he most shocking play in NFL history鈥� and the Washington Redskins dubbed the 鈥淭hrowback Special鈥�: the November 1985 play in which the Redskins鈥� Joe Theismann had his leg horribly broken by Lawrence Taylor of the New York Giants live on Monday Night Football. With wit and great empathy, Chris Bachelder introduces us to Charles, a psychologist whose expertise is in high demand; George, a garrulous public librarian; Fat Michael, envied and despised by the others for being exquisitely fit; Jeff, a recently divorced man who has become a theorist of marriage; and many more. Over the course of a weekend, the men reveal their secret hopes, fears, and passions as they choose roles, spend a long night of the soul preparing for the play, and finally enact their bizarre ritual for what may be the last time. Along the way, mishaps, misunderstandings, and grievances pile up, and the comforting traditions holding the group together threaten to give way. The Throwback Special is a moving and comic tale filled with pitch-perfect observations about manhood, marriage, middle age, and the rituals we all enact as part of being alive.");
-		nb.createTextNote("Books", "Another Brooklyn: A Novel",
-				"The acclaimed New York Times bestselling and National Book Award鈥搘inning author of Brown Girl Dreaming delivers her first adult novel in twenty years. Running into a long-ago friend sets memory from the 1970s in motion for August, transporting her to a time and a place where friendship was everything鈥攗ntil it wasn鈥檛. For August and her girls, sharing confidences as they ambled through neighborhood streets, Brooklyn was a place where they believed that they were beautiful, talented, brilliant鈥攁 part of a future that belonged to them. But beneath the hopeful veneer, there was another Brooklyn, a dangerous place where grown men reached for innocent girls in dark hallways, where ghosts haunted the night, where mothers disappeared. A world where madness was just a sunset away and fathers found hope in religion. Like Louise Meriwether鈥檚 Daddy Was a Number Runner and Dorothy Allison鈥檚 Bastard Out of Carolina, Jacqueline Woodson鈥檚 Another Brooklyn heartbreakingly illuminates the formative time when childhood gives way to adulthood鈥攖he promise and peril of growing up鈥攁nd exquisitely renders a powerful, indelible, and fleeting friendship that united four young lives.");
-
-		nb.createTextNote("Holiday", "Vietnam",
-				"What I should Bring? When I should go? Ask Romina if she wants to come");
-		nb.createTextNote("Holiday", "Los Angeles", "Peter said he wants to go next Agugust");
-		nb.createTextNote("Holiday", "Christmas", "Possible destinations : Home, New York or Rome");
+//		nb.createTextNote("COMP3021", "COMP3021 syllabus", "Be able to implement object-oriented concepts in Java.");
+//		nb.createTextNote("COMP3021", "course information",
+//				"Introduction to Java Programming. Fundamentals include language syntax, object-oriented programming, inheritance, interface, polymorphism, exception handling, multithreading and lambdas.");
+//		nb.createTextNote("COMP3021", "Lab requirement",
+//				"Each lab has 2 credits, 1 for attendence and the other is based the completeness of your lab.");
+//
+//		nb.createTextNote("Books", "The Throwback Special: A Novel",
+//				"Here is the absorbing story of twenty-two men who gather every fall to painstakingly reenact what ESPN called 鈥渢he most shocking play in NFL history鈥� and the Washington Redskins dubbed the 鈥淭hrowback Special鈥�: the November 1985 play in which the Redskins鈥� Joe Theismann had his leg horribly broken by Lawrence Taylor of the New York Giants live on Monday Night Football. With wit and great empathy, Chris Bachelder introduces us to Charles, a psychologist whose expertise is in high demand; George, a garrulous public librarian; Fat Michael, envied and despised by the others for being exquisitely fit; Jeff, a recently divorced man who has become a theorist of marriage; and many more. Over the course of a weekend, the men reveal their secret hopes, fears, and passions as they choose roles, spend a long night of the soul preparing for the play, and finally enact their bizarre ritual for what may be the last time. Along the way, mishaps, misunderstandings, and grievances pile up, and the comforting traditions holding the group together threaten to give way. The Throwback Special is a moving and comic tale filled with pitch-perfect observations about manhood, marriage, middle age, and the rituals we all enact as part of being alive.");
+//		nb.createTextNote("Books", "Another Brooklyn: A Novel",
+//				"The acclaimed New York Times bestselling and National Book Award鈥搘inning author of Brown Girl Dreaming delivers her first adult novel in twenty years. Running into a long-ago friend sets memory from the 1970s in motion for August, transporting her to a time and a place where friendship was everything鈥攗ntil it wasn鈥檛. For August and her girls, sharing confidences as they ambled through neighborhood streets, Brooklyn was a place where they believed that they were beautiful, talented, brilliant鈥攁 part of a future that belonged to them. But beneath the hopeful veneer, there was another Brooklyn, a dangerous place where grown men reached for innocent girls in dark hallways, where ghosts haunted the night, where mothers disappeared. A world where madness was just a sunset away and fathers found hope in religion. Like Louise Meriwether鈥檚 Daddy Was a Number Runner and Dorothy Allison鈥檚 Bastard Out of Carolina, Jacqueline Woodson鈥檚 Another Brooklyn heartbreakingly illuminates the formative time when childhood gives way to adulthood鈥攖he promise and peril of growing up鈥攁nd exquisitely renders a powerful, indelible, and fleeting friendship that united four young lives.");
+//
+//		nb.createTextNote("Holiday", "Vietnam",
+//				"What I should Bring? When I should go? Ask Romina if she wants to come");
+//		nb.createTextNote("Holiday", "Los Angeles", "Peter said he wants to go next Agugust");
+//		nb.createTextNote("Holiday", "Christmas", "Possible destinations : Home, New York or Rome");
 		noteBook = nb;
 
 	}

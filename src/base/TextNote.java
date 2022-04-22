@@ -31,6 +31,10 @@ public class TextNote extends Note {
 		return this.content;
 	}
 	
+	public void contentChange (String content) {
+		this.content=content;
+	}
+	
 	private String getTextFromFile(String absolutePath) {
 		String result = "";
 		BufferedReader br = null;
